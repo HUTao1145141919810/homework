@@ -40,51 +40,40 @@ async function initUserTable() {
 
 initUserTable();
 
-// 用户注册
-app.post('/api/register', async (req, res) => {
-  const { username, password } = req.body;
-  
-  try {
-    // 检查用户名是否已存在
-    const [users] = await pool.execute('SELECT * FROM users WHERE username = ?', [username]);
-    if (users.length > 0) {
-      return res.json({ success: false, message: '用户名已存在' });
-    }
-    
-    // 加密密码
-    const passwordHash = await bcrypt.hash(password, 10);
-    
-    // 创建用户
-    await pool.execute('INSERT INTO users (username, password_hash) VALUES (?, ?)', [
-      username,
-      passwordHash
-    ]);
-    
-    res.json({ success: true });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: '注册失败' });
-  }
-});
-
 // 用户登录
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   
+  // 验证请求参数
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: '用户名和密码不能为空' });
+  }
+  
   try {
-    // 获取用户
-    const [users] = await pool.execute('SELECT * FROM users WHERE username = ?', [username]);
+    // 获取用户，明确选择password_hash字段
+    const [users] = await pool.execute(
+      'SELECT id, username, password_hash FROM users WHERE username = ?', 
+      [username]
+    );
+    
+    // 调试输出：检查查询结果
+    console.log('查询结果:', users);
+    
     const user = users[0];
     
     if (!user) {
-      return res.json({ success: false, message: '用户名不存在' });
+      return res.status(401).json({ success: false, message: '用户名不存在' });
     }
+    
+    // 调试输出：检查password_hash类型
+    console.log('password_hash类型:', typeof user.password_hash);
+    console.log('password_hash值:', user.password_hash);
     
     // 验证密码
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     
     if (!isPasswordValid) {
-      return res.json({ success: false, message: '密码错误' });
+      return res.status(401).json({ success: false, message: '密码错误' });
     }
     
     // 生成JWT
@@ -94,7 +83,7 @@ app.post('/api/login', async (req, res) => {
     
     res.json({ success: true, token });
   } catch (error) {
-    console.error(error);
+    console.error('登录错误:', error);
     res.status(500).json({ success: false, message: '登录失败' });
   }
 });
@@ -128,18 +117,36 @@ app.get('/api/users', authenticateToken, async (req, res) => {
   }
 });
 
-// 添加用户
-app.post('/api/users', authenticateToken, async (req, res) => {
-  const { name, email } = req.body;
+// 用户注册
+app.post('/api/register', async (req, res) => {
+  const { username, password } = req.body;
+  
+  // 验证请求参数
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: '用户名和密码不能为空' });
+  }
+  
   try {
-    const [result] = await pool.execute(
-      'INSERT INTO users (name, email) VALUES (?, ?)',
-      [name, email]
-    );
-    res.json({ success: true, id: result.insertId });
+    // 检查用户名是否已存在
+    const [users] = await pool.execute('SELECT * FROM users WHERE username = ?', [username]);
+    if (users.length > 0) {
+      return res.json({ success: false, message: '用户名已存在' });
+    }
+    
+    // 加密密码
+    const passwordHash = await bcrypt.hash(password, 10);
+    
+    // 创建用户
+    await pool.execute('INSERT INTO users (username, password_hash) VALUES (?, ?)', [
+      username,
+      passwordHash
+    ]);
+    
+    console.log(`用户 ${username} 注册成功，密码哈希已保存`);
+    res.json({ success: true });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: '数据库错误' });
+    console.error('注册错误:', error);
+    res.status(500).json({ success: false, message: '注册失败' });
   }
 });
 

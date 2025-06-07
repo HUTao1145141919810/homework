@@ -1,155 +1,104 @@
+<!-- AuthPage.vue -->
 <template>
-  <div class="auth-container">
-    <div class="auth-card">
-      <div class="tabs">
-        <button :class="{ active: currentTab === 'login' }" @click="currentTab = 'login'">登录</button>
-        <button :class="{ active: currentTab === 'register' }" @click="currentTab = 'register'">注册</button>
-      </div>
+  <div>
+    <!-- 登录表单 -->
+    <div class="login-form">
+      <h2>登录</h2>
+      <input v-model="loginUser.username" placeholder="用户名" />
+      <input v-model="loginUser.password" placeholder="密码" type="password" />
+      <button @click="handleLogin">登录</button>
+    </div>
 
-      <div class="tab-content">
-        <!-- 登录表单 -->
-        <div v-if="currentTab === 'login'" class="form-container">
-          <h2>用户登录</h2>
-          <input v-model="loginForm.username" placeholder="用户名" type="text" />
-          <input v-model="loginForm.password" placeholder="密码" type="password" />
-          <button @click="handleLogin">登录</button>
-          <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-        </div>
-
-        <!-- 注册表单 -->
-        <div v-if="currentTab === 'register'" class="form-container">
-          <h2>用户注册</h2>
-          <input v-model="registerForm.username" placeholder="用户名" type="text" />
-          <input v-model="registerForm.password" placeholder="密码" type="password" />
-          <input v-model="registerForm.confirmPassword" placeholder="确认密码" type="password" />
-          <button @click="handleRegister">注册</button>
-          <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-        </div>
-      </div>
+    <!-- 注册表单 -->
+    <div class="register-form">
+      <h2>注册</h2>
+      <input v-model="registerUser.username" placeholder="用户名" />
+      <input v-model="registerUser.password" placeholder="密码" type="password" />
+      <button @click="handleRegister">注册</button>
     </div>
   </div>
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
+  name: 'AuthPage',
   data() {
     return {
-      currentTab: 'login',
-      loginForm: {
+      loginUser: {
         username: '',
-        password: ''
+        email: ''
       },
-      registerForm: {
+      registerUser: {
         username: '',
-        password: '',
-        confirmPassword: ''
-      },
-      errorMessage: ''
-    }
+        email: ''
+      }
+    };
   },
   methods: {
     async handleLogin() {
       try {
-        const response = await this.$axios.post('http://localhost:3307/api/login', this.loginForm);
+        const response = await axios.post('http://localhost:3307/api/login', this.loginUser);
         if (response.data.success) {
+          console.log('登录成功');
+          // 保存JWT令牌到本地存储
           localStorage.setItem('token', response.data.token);
-          localStorage.setItem('username', this.loginForm.username);
-          this.$router.push('/dashboard');
+          // 跳转到SCL90Survey页面
+          this.$router.push('/scl90-survey');
         } else {
-          this.errorMessage = response.data.message;
+          console.error('登录失败:', response.data.message);
         }
       } catch (error) {
-        this.errorMessage = '登录失败，请重试';
-        console.error(error);
+        console.error('登录请求失败:', error);
       }
     },
-    
     async handleRegister() {
-      if (this.registerForm.password !== this.registerForm.confirmPassword) {
-        this.errorMessage = '两次输入的密码不一致';
-        return;
-      }
-      
       try {
-        const response = await this.$axios.post('http://localhost:3307/api/register', {
-          username: this.registerForm.username,
-          password: this.registerForm.password
-        });
-        
+        const response = await axios.post('http://localhost:3307/api/register', this.registerUser);
         if (response.data.success) {
-          this.errorMessage = '注册成功，请登录';
-          this.currentTab = 'login';
+          console.log('注册成功');
+          // 注册成功后自动登录
+          await this.handleLogin();
         } else {
-          this.errorMessage = response.data.message;
+          console.error('注册失败:', response.data.message);
         }
       } catch (error) {
-        this.errorMessage = '注册失败，请重试';
-        console.error(error);
+        console.error('注册请求失败:', error);
       }
     }
   }
-}
+};
 </script>
 
 <style scoped>
-.auth-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background-color: #f5f5f5;
+.login-form,
+.register-form {
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
 }
 
-.auth-card {
-  background-color: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  width: 300px;
-}
-
-.tabs {
-  display: flex;
-  margin-bottom: 20px;
-}
-
-.tabs button {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  background-color: #f0f0f0;
-  cursor: pointer;
-}
-
-.tabs button.active {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.form-container {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-container input {
-  margin-bottom: 10px;
+input {
+  display: block;
+  width: 100%;
   padding: 8px;
+  margin-bottom: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
 }
 
-.form-container button {
-  padding: 10px;
+button {
   background-color: #4CAF50;
   color: white;
+  padding: 8px 16px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
 }
 
-.error-message {
-  color: red;
-  margin-top: 10px;
-  text-align: center;
+button:hover {
+  background-color: #45a049;
 }
 </style>
