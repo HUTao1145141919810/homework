@@ -43,11 +43,11 @@ app.get('/api/users', async (req, res) => {
 
 // 添加用户
 app.post('/api/users', async (req, res) => {
-  const { name, email } = req.body;
+  const { username, email } = req.body;
   try {
     const [result] = await pool.execute(
-      'INSERT INTO users (name, email) VALUES (?, ?)',
-      [name, email]
+      'INSERT INTO users (username, email) VALUES (?, ?)',
+      [username, email]
     );
     res.json({ success: true, id: result.insertId });
   } catch (error) {
@@ -56,6 +56,19 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
+// 处理心理测评提交
+app.post('/api/survey', async (req, res) => {
+  const { q1, q2 } = req.body;
+  try {
+    // 这里可以将数据插入到数据库中
+    // 示例：const [result] = await pool.execute('INSERT INTO surveys (q1, q2) VALUES (?, ?)', [q1, q2]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Database error' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
-});  
+});
