@@ -1,23 +1,103 @@
 <template>
-  <div>
-    <h2>SCL - 90 心理问卷调查</h2>
-    <form @submit.prevent="submitSurvey">
-      <div v-for="(question, index) in scl90Questions" :key="index">
-        <p>{{ index + 1 }}. {{ question }}</p>
-        <select v-model="answers[index]">
-          <option value="1">没有</option>
-          <option value="2">很轻</option>
-          <option value="3">中等</option>
-          <option value="4">偏重</option>
-          <option value="5">严重</option>
-        </select>
+  <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+      <!-- 顶部导航栏 -->
+      <header class="bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-6">
+        <h1 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold tracking-tight">SCL - 90 心理问卷调查</h1>
+        <p class="mt-2 opacity-90">请根据您最近一周内的实际感受选择最符合的选项</p>
+      </header>
+
+      <!-- 进度指示器 -->
+      <div class="bg-gray-100 px-6 py-4">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium text-gray-600">
+            进度: {{ answeredQuestions }}/{{ totalQuestions }}
+          </span>
+          <span class="text-sm font-medium text-gray-600">
+            完成度: {{ progressPercentage }}%
+          </span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+          <div class="bg-blue-600 h-2.5 rounded-full" :style="{ width: `${progressPercentage}%` }"></div>
+        </div>
       </div>
-      <button type="submit">提交</button>
-    </form>
+
+      <!-- 问卷内容区 -->
+      <form @submit.prevent="submitSurvey" class="p-6 md:p-8">
+        <div class="space-y-8">
+          <!-- 问题卡片 -->
+          <div v-for="(question, index) in paginatedQuestions" :key="index" class="bg-gray-50 rounded-xl p-6 shadow-sm transition-all duration-300 hover:shadow-md">
+            <div class="flex">
+              <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <span class="font-medium text-blue-800">{{ currentPage * itemsPerPage + index + 1 }}</span>
+              </div>
+              <div class="ml-4">
+                <h3 class="text-lg font-medium text-gray-900">{{ question }}</h3>
+                <div class="mt-4 grid grid-cols-5 gap-2">
+                  <label v-for="option in options" :key="option.value" class="cursor-pointer">
+                    <input 
+                      type="radio" 
+                      :value="option.value" 
+                      v-model="answers[currentPage * itemsPerPage + index]"
+                      class="sr-only peer"
+                    >
+                    <div class="flex items-center justify-center py-2 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all duration-200">
+                      {{ option.label }}
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分页控制 -->
+        <div class="mt-8 flex flex-col sm:flex-row justify-between items-center">
+          <button 
+            type="button" 
+            @click="prevPage" 
+            :disabled="currentPage === 0"
+            class="w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-600 rounded-lg font-medium transition-all duration-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          >
+            <i class="fa fa-arrow-left mr-2"></i> 上一页
+          </button>
+          
+          <div class="mt-4 sm:mt-0 text-sm text-gray-500">
+            第 {{ currentPage + 1 }}/{{ totalPages }} 页
+          </div>
+          
+          <button 
+            type="button" 
+            @click="nextPage" 
+            :disabled="currentPage === totalPages - 1"
+            class="w-full sm:w-auto mt-4 sm:mt-0 px-6 py-3 bg-gray-200 text-gray-600 rounded-lg font-medium transition-all duration-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          >
+            下一页 <i class="fa fa-arrow-right ml-2"></i>
+          </button>
+        </div>
+
+        <!-- 提交按钮 -->
+        <div class="mt-8">
+          <button
+            type="submit"
+            class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-3 px-6 rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            :disabled="!isFormComplete"
+          >
+            <i class="fa fa-check-circle mr-2"></i> 提交问卷
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="mt-8 text-center text-sm text-gray-500">
+      <p>© 2025 心理健康评估系统 | 本问卷仅供参考，非专业诊断</p>
+    </footer>
   </div>
 </template>
 
 <script>
+/* eslint-disable no-undef */
 export default {
   data() {
     return {
@@ -113,37 +193,116 @@ export default {
         "感到自己有罪",
         "感到自己的脑子有毛病"
       ],
-      answers: new Array(90).fill('')
+      answers: new Array(90).fill(''),
+      currentPage: 0,
+      itemsPerPage: 5,
+      options: [
+        { value: '1', label: '没有' },
+        { value: '2', label: '很轻' },
+        { value: '3', label: '中等' },
+        { value: '4', label: '偏重' },
+        { value: '5', label: '严重' }
+      ]
     };
   },
+  computed: {
+    // 计算总页数
+    totalPages() {
+      return Math.ceil(this.scl90Questions.length / this.itemsPerPage);
+    },
+    // 获取当前页的问题
+    paginatedQuestions() {
+      const startIndex = this.currentPage * this.itemsPerPage;
+      const endIndex = startIndex + this.itemsPerPage;
+      return this.scl90Questions.slice(startIndex, endIndex);
+    },
+    // 已回答的问题数量
+    answeredQuestions() {
+      return this.answers.filter(answer => answer !== '').length;
+    },
+    // 总问题数量
+    totalQuestions() {
+      return this.scl90Questions.length;
+    },
+    // 进度百分比
+    progressPercentage() {
+      return Math.round((this.answeredQuestions / this.totalQuestions) * 100);
+    },
+    // 表单是否填写完整
+    isFormComplete() {
+      return this.answeredQuestions === this.totalQuestions;
+    }
+  },
   methods: {
-    async submitSurvey() {
+    // 下一页
+    nextPage() {
+      if (this.currentPage < this.totalPages - 1) {
+        this.currentPage++;
+      }
+    },
+    // 上一页
+    prevPage() {
+      if (this.currentPage > 0) {
+        this.currentPage--;
+      }
+    },
+    // 提交问卷
+    async submitSurvey(event) { // 显式声明event参数
       try {
-        const response = await this.$axios.post('http://localhost:3307/api/scl90', {
-          answers: this.answers
-        });
-        if (response.data.success) {
-          alert('提交成功！');
-          this.answers = new Array(90).fill('');
+        // 表单验证
+        if (!this.isFormComplete) {
+          alert('请回答所有问题后再提交');
+          return;
         }
+
+        // 显示加载状态
+        const originalButtonText = event.target.innerHTML;
+        event.target.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 提交中...';
+        event.target.disabled = true;
+
+        // 模拟提交
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // 提交成功
+        alert('提交成功！感谢您的参与。');
+        this.resetForm();
+        
+        // 恢复按钮状态
+        event.target.innerHTML = originalButtonText;
+        event.target.disabled = false;
       } catch (error) {
         console.error('提交失败:', error);
+        alert('提交失败，请稍后再试');
+        
+        // 恢复按钮状态
+        event.target.innerHTML = originalButtonText;
+        event.target.disabled = false;
       }
+    },
+    // 重置表单
+    resetForm() {
+      this.answers = new Array(90).fill('');
+      this.currentPage = 0;
     }
   }
 };
 </script>
 
 <style scoped>
-form {
-  margin-top: 20px;
+@layer utilities {
+  .content-auto {
+    content-visibility: auto;
+  }
 }
+</style>
 
-p {
-  margin-bottom: 5px;
-}
-
-select {
-  margin-bottom: 15px;
+<style type="text/tailwindcss">
+@layer utilities {
+  .question-card {
+    @apply bg-gray-50 rounded-xl p-6 shadow-sm transition-all duration-300 hover:shadow-md;
+  }
+  .option-button {
+    @apply flex items-center justify-center py-2 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-all duration-200;
+  }
 }
 </style>
