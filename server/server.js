@@ -38,7 +38,27 @@ async function initUserTable() {
   }
 }
 
+// 初始化SCL90表
+async function initScl90Table() {
+  try {
+    const columns = Array.from({ length: 90 }, (_, i) => `q${i + 1} TINYINT`).join(', ');
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS scl90 (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(255),
+        ${columns},
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (username) REFERENCES users(username)
+      )
+    `);
+    console.log('SCL90表初始化完成');
+  } catch (error) {
+    console.error('初始化SCL90表失败:', error);
+  }
+}
+
 initUserTable();
+initScl90Table();
 
 // 用户登录
 app.post('/api/login', async (req, res) => {
@@ -143,26 +163,48 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// 处理SCL-90问卷提交（方案一：文本类型）
-app.post('/api/scl90', authenticateToken, async (req, res) => {
+// 处理SCL-90问卷提交
+app.post('/api/scl90survey', authenticateToken, async (req, res) => {
   const { answers } = req.body;
   const username = req.user.username;
-  
+
   try {
-    // 确保表名正确
+    // 验证答案完整性
+    if (!Array.isArray(answers) || answers.length !== 90) {
+      return res.status(400).json({ success: false, message: '答案格式不正确' });
+    }
+
+    // 构建SQL插入语句
     const columns = ['id', 'username', ...Array.from({ length: 90 }, (_, i) => `q${i + 1}`)];
     const values = [null, username, ...answers];
     const placeholders = columns.map(() => '?').join(',');
-    // 使用修改后的表名scl90
     const query = `INSERT INTO scl90 (${columns.join(',')}) VALUES (${placeholders})`;
+    
+    // 执行插入
     const [result] = await pool.execute(query, values);
     res.json({ success: true, id: result.insertId });
   } catch (error) {
-    console.error('SCL90提交错误:', error);
+    console.error('SCL90Survey提交错误:', error);
+    res.status(500).json({ success: false, message: '数据库错误' });
+  }
+});
+
+// 获取用户的SCL-90历史记录
+app.get('/api/scl90history', authenticateToken, async (req, res) => {
+  const username = req.user.username;
+
+  try {
+    const [rows] = await pool.execute(
+      'SELECT * FROM scl90 WHERE username = ? ORDER BY created_at DESC', 
+      [username]
+    );
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('获取SCL90历史记录错误:', error);
     res.status(500).json({ success: false, message: '数据库错误' });
   }
 });
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
-});  
+});
