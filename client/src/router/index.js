@@ -1,12 +1,18 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import AuthPage from '../components/AuthPage.vue';
 import UserDashboard from '../components/UserDashboard.vue';
+import SCL90Survey from '../views/SCL90Survey.vue';
 
 const routes = [
   {
     path: '/',
     name: 'Auth',
     component: AuthPage
+  },
+  {
+    path: '/scl90-survey',
+    name: 'SCL90Survey',
+    component: SCL90Survey
   },
   {
     path: '/dashboard',
