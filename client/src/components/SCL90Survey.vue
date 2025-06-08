@@ -81,9 +81,10 @@
           <button
             type="submit"
             class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-3 px-6 rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            :disabled="!isFormComplete"
+            :disabled="!isFormComplete || isSubmitting"
           >
-            <i class="fa fa-check-circle mr-2"></i> 提交问卷
+            <i class="fa fa-check-circle mr-2"></i> 
+            {{ isSubmitting ? '提交中...' : '提交问卷' }}
           </button>
         </div>
       </form>
@@ -97,7 +98,6 @@
 </template>
 
 <script>
-/* eslint-disable no-undef */
 export default {
   data() {
     return {
@@ -197,12 +197,13 @@ export default {
       currentPage: 0,
       itemsPerPage: 5,
       options: [
-        { value: '1', label: '没有' },
-        { value: '2', label: '很轻' },
-        { value: '3', label: '中等' },
-        { value: '4', label: '偏重' },
-        { value: '5', label: '严重' }
-      ]
+        { value: '没有', label: '没有' },
+        { value: '很轻', label: '很轻' },
+        { value: '中等', label: '中等' },
+        { value: '偏重', label: '偏重' },
+        { value: '严重', label: '严重' }
+      ],
+      isSubmitting: false // 新增：用于跟踪提交状态
     };
   },
   computed: {
@@ -247,7 +248,7 @@ export default {
       }
     },
     // 提交问卷
-    async submitSurvey(event) { // 显式声明event参数
+    async submitSurvey() {
       try {
         // 表单验证
         if (!this.isFormComplete) {
@@ -255,28 +256,38 @@ export default {
           return;
         }
 
-        // 显示加载状态
-        const originalButtonText = event.target.innerHTML;
-        event.target.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 提交中...';
-        event.target.disabled = true;
+        // 更新提交状态
+        this.isSubmitting = true;
 
-        // 模拟提交
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // 提交成功
-        alert('提交成功！感谢您的参与。');
-        this.resetForm();
-        
-        // 恢复按钮状态
-        event.target.innerHTML = originalButtonText;
-        event.target.disabled = false;
+        // 准备发送的数据
+        const surveyData = {
+          answers: this.answers
+        };
+
+        // 发送数据到服务器
+        const response = await fetch('/api/scl90', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(surveyData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          alert('提交成功！感谢您的参与。');
+          this.resetForm();
+        } else {
+          alert('提交失败: ' + result.message);
+        }
       } catch (error) {
         console.error('提交失败:', error);
         alert('提交失败，请稍后再试');
-        
-        // 恢复按钮状态
-        event.target.innerHTML = originalButtonText;
-        event.target.disabled = false;
+      } finally {
+        // 恢复提交状态
+        this.isSubmitting = false;
       }
     },
     // 重置表单

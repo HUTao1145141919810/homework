@@ -56,18 +56,11 @@ app.post('/api/login', async (req, res) => {
       [username]
     );
     
-    // 调试输出：检查查询结果
-    console.log('查询结果:', users);
-    
     const user = users[0];
     
     if (!user) {
       return res.status(401).json({ success: false, message: '用户名不存在' });
     }
-    
-    // 调试输出：检查password_hash类型
-    console.log('password_hash类型:', typeof user.password_hash);
-    console.log('password_hash值:', user.password_hash);
     
     // 验证密码
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
@@ -150,24 +143,26 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// 处理SCL-90问卷提交
+// 处理SCL-90问卷提交（方案一：文本类型）
 app.post('/api/scl90', authenticateToken, async (req, res) => {
   const { answers } = req.body;
   const username = req.user.username;
   
   try {
+    // 确保表名正确
     const columns = ['id', 'username', ...Array.from({ length: 90 }, (_, i) => `q${i + 1}`)];
     const values = [null, username, ...answers];
     const placeholders = columns.map(() => '?').join(',');
-    const query = `INSERT INTO bing (${columns.join(',')}) VALUES (${placeholders})`;
+    // 使用修改后的表名scl90
+    const query = `INSERT INTO scl90 (${columns.join(',')}) VALUES (${placeholders})`;
     const [result] = await pool.execute(query, values);
     res.json({ success: true, id: result.insertId });
   } catch (error) {
-    console.error(error);
+    console.error('SCL90提交错误:', error);
     res.status(500).json({ success: false, message: '数据库错误' });
   }
 });
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
-});
+});  
