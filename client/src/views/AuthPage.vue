@@ -122,7 +122,14 @@ export default {
           if (response.data.success) {
             console.log('登录成功');
             localStorage.setItem('token', response.data.token);
-            this.$router.push('/scl90-survey');
+            localStorage.setItem('isAdmin', response.data.isAdmin); // 存储 isAdmin 标识
+            
+            // 确保路由路径与 router/index.js 中定义的一致
+            if (response.data.isAdmin) {
+              this.$router.push('/admin-dashboard'); // 修改为与路由配置一致的路径
+            } else {
+              this.$router.push('/scl90-survey');
+            }
           } else {
             // 根据后端返回的错误类型显示不同的提示
             if (response.data.errorType === 'passwordError') {
@@ -208,6 +215,12 @@ export default {
   --glassmorphism-bg: rgba(255, 255, 255, 0.7); /* 半透明白色背景 */
   --glassmorphism-border: rgba(255, 255, 255, 0.3); /* 边框颜色 */
   --glassmorphism-blur: 10px; /* 模糊程度 */
+  
+  /* 添加缺失的绿色变量定义 */
+  --green-primary: #4CAF50;
+  --green-secondary: #45a049;
+  --green-shadow: rgba(76, 175, 80, 0.2);
+  --green-shadow-hover: rgba(76, 175, 80, 0.3);
 }
 
 /* 基础样式 */
@@ -365,12 +378,12 @@ input:focus + .input-icon {
   color: var(--primary);
 }
 
-/* 修改按钮样式为绿色 */
+/* 修复按钮样式 */
 .form-button {
   width: 100%;
   padding: 0.875rem;
   background: linear-gradient(135deg, var(--green-primary), var(--green-secondary));
-  color: rgb(0, 0, 0);
+  color: white; /* 修改为白色文本 */
   border: none;
   border-radius: 8px;
   font-size: 1rem;
@@ -467,4 +480,4 @@ input:focus + .input-icon {
     right: -150px;
   }
 }
-</style>    
+</style>
